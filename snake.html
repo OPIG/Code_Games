@@ -1,0 +1,203 @@
+<!Doctype html>
+<html>
+	<head>
+		<title>Snake game</title>
+		<meta charset="utf-8"/>
+		
+	</head>
+	<body>
+		<canvas width="200" height="200" style="border:1px solid black"></canvas>
+	</body>
+	<script type="text/javascript">
+(function () {
+    var World = {
+        Food: {
+            x: null,
+            y: null,
+            generate: function (snake) {
+                var headxy = snake.head.get();
+                var bodyxy = snake.body.part;
+                var map = [];
+                for (var x = 0; x < World.Size.width; x++) {
+                    for (var y = 0; y < World.Size.height; y++) {
+                        if (x == headxy.x && y == headxy.y) {
+                            continue;
+                        }
+                        if (bodyxy.length > 0) {
+                            (function () {
+                                for (var i = 0; i < bodyxy.length; i++) {
+                                    if (x == bodyxy[i].x && y == bodyxy[i].y) {
+                                        return;
+                                    }
+                                    map.push([x, y]);
+                                }
+                            })();
+                        } else {
+                            map.push([x, y]);
+                        }
+                    }
+                }
+
+                var i = Math.floor(Math.random() * map.length);
+                World.Food.x = map[i][0];
+                World.Food.y = map[i][1];
+            }
+        },
+        Size: {
+            width: 20,
+            height: 20
+        }
+    };
+
+    var Center = {
+        x: 9,
+        y: 9
+    }
+
+    var Direction = {
+        up: 1,
+        right: 2,
+        left: -2,
+        down: -1
+    }
+
+    function gameOver(len) {
+        alert("Your Score:" + len);
+    };
+    function Snake() {
+        var self = this;
+        function Head() {
+            this.x = Center.x;
+            this.y = Center.y;
+            this.direction = null;
+
+            this.get = function () {
+                return {
+                    x: this.x,
+                    y: this.y
+                }
+            }
+
+            this.move = function (direction) {
+                if (!direction) {
+                    return true;
+                }
+                var headxy = this.get();
+                this.direction = direction = direction + this.direction ? direction : this.direction;
+
+                switch (direction) {
+                case Direction.up:
+                    this.y--;
+                    break;
+                case Direction.right:
+                    this.x++;
+                    break;
+                case Direction.left:
+                    this.x--;
+                    break;
+                case Direction.down:
+                    this.y++;
+                    break;
+                }
+
+                if (eat(this.x, this.y)) {
+                    self.body.increase(headxy);
+                    World.Food.generate(self);
+                } else if (hitCheck(this.x, this.y) || eatSelfCheck(this.x, this.y)) {
+                    die();
+                    return false;
+                } else {
+                    self.body.move(headxy); //todo
+                }
+
+                return true;
+
+            }
+
+            function die() {
+                gameOver(self.body.part.length); //todo
+            }
+
+            function hitCheck(x, y) {
+                return (x < 0 || y < 0 || x == World.Size.width || y == World.Size.height);
+            }
+
+            function eat(x, y) {
+                return x == World.Food.x && y == World.Food.y;
+            }
+
+            function eatSelfCheck(x, y) {
+                var part = self.body.part;
+                for (var i = 0; i < part.length; i++) {
+                    if (x == part[i].x && y == part[i].y) {
+                        return true;
+                    }
+                }
+                return false;
+            }
+        }
+
+        function Body() {
+            this.part = [];
+            this.move = function (head) {
+                if (this.part.length > 0) {
+                    this.part.pop();
+                    this.increase(head);
+                }
+            }
+
+            this.increase = function (head) {
+                this.part.unshift(head);
+            }
+        }
+
+        this.body = new Body();
+        this.head = new Head();
+    }
+
+    function init() {
+        var snake = new Snake();
+        World.Food.generate(snake);
+
+        var ctx = document.querySelector('canvas').getContext('2d');
+
+        function draw(snake) {
+            ctx.clearRect(0, 0, 200, 200);
+            var head = snake.head;
+            ctx.fillStyle = "red";
+            ctx.fillRect(head.x * 10, head.y * 10, 10, 10);
+
+            var body = snake.body.part;
+            for (var i = 0; i < body.length; i++) {
+                ctx.fillStyle = "black";
+                ctx.fillRect(body[i].x * 10, body[i].y * 10, 10, 10);
+            }
+
+            ctx.fillStyle = "green";
+            ctx.fillRect(World.Food.x * 10, World.Food.y * 10, 10, 10)
+        }
+
+        var direction,
+        dict_direction = [];
+        dict_direction[37] = Direction.left;
+        dict_direction[38] = Direction.up;
+        dict_direction[39] = Direction.right;
+        dict_direction[40] = Direction.down;
+
+        document.addEventListener('keydown', function (e) {
+            direction = dict_direction[e.keyCode] || direction;
+        });
+
+        (function () {
+            if (snake.head.move(direction)) {
+                draw(snake);
+                setTimeout(arguments.callee, 200 - snake.body.part.length);
+            }
+        })();
+    }
+
+    init();
+})()
+
+	</script>
+</html>
